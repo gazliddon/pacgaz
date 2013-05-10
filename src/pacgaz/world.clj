@@ -2,8 +2,6 @@
 (ns pacgaz.world)
 
 
-
-
 (defn- parse-map
   "Parse a pac map as string into an object I can use in the game"
   

@@ -37,3 +37,11 @@
   (cube thickness height)
   )
 
+(defn draw-one-tri []
+  (gl/draw-triangles
+   (gl/color 1 0 0) (gl/vertex 1 0)
+   (gl/color 0 1 0) (gl/vertex -1 0)
+   (gl/color 0 0 1) (gl/vertex 0 1.86))
+  )
+
+

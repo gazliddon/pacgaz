@@ -1,10 +1,11 @@
-(ns pacgaz.map-data
+(ns pacgaz.mapdata
+
+  (:require clojure.pprint)
   (:use [clojure.string :only (join)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Different map element types
 
-;; All of the map types
 (def map-bit-types
   {
     \* { :name "wall"   :collide true  }
@@ -36,22 +37,21 @@
   
   (let [lines    (map #(.trim %) (.split str "\n"))
         width    (count (first lines))
-        height   (count lines)
-        valid    (every? #(= width (count %)) lines) 
-
         joined   (join lines)
         map-bits (map-indexed (partial char-to-map-data width) joined)
        ]
   
-    {:valid valid
-     :width width :height height
+    {:valid (every? #(= width (count %)) lines)
+     :width width :height (count lines)
      :map map-bits
      :lines lines
      :joined joined}))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Some test code
+;; Some test data and code
+
+;; Ha! Map doesn't care about spurious spaces in data :)
 
 (def test-map
   "*********
@@ -62,12 +62,7 @@
    *.o...o.*
    *********")
 
-;; Test code
-;; get a load of WALLS
-(defn my-test []
-    (filter #(= "wall" (:name %)) (:map (parse-map test-map))))
+(defn get-bits-of-type [type]
+  (filter #(= type (:name %)) (:map (parse-map test-map))))
 
-(pprint (my-test))
-
- 
-   
+(get-bits-of-type "wall")
