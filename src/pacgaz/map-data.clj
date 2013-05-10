@@ -1,16 +1,5 @@
 (ns pacgaz.map-data
-  (:require [pacgaz.utils :as u]))
-
-;; Textual version of the map
-
-(def pacmap-test
-  "*********
-   *.o...o.*
-   *.......*
-   *...P...*
-   *.......*
-   *.o...o.*
-   *********")
+  (:use [clojure.string :only (join)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Different map element types
@@ -25,49 +14,60 @@
     })
 
 ;; Valid bit for unrecognised chars in the map data
-(def error-bit
-  { :name "error" :collide false})
-
+(def err-bit { :name "error" :collide false})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 ;; Turn a string into an array of map bits
-(defn- string-to-map-data [str]
-  (vec (map #(get map-bit-types % error-bit) str)))
+;; Parse the map from a string, like the one at the bottom of this file
+;; and turn it into a sequence
 
-;; Parse the map from a string, like the one at the top of this file
 (defn- parse-map
-
+  
   "Parse a pac map as string into an object I can use in the game
    checks to see if all of the lines are the same width"
   
   [str]
+
+  ;; Turns a chr into a has with info about the map bit this represents
+  ;; along with its x y pos on the map
+  
+  (defn- char-to-map-data [w idx chr]
+    (merge { :x (rem idx w) :y (quot idx w) } (get map-bit-types chr err-bit)))
   
   (let [lines    (map #(.trim %) (.split str "\n"))
-        map-bits (vec (map string-to-map-data lines))
-        width    (count (first map-bits))
-        height   (count map-bits)
-        valid    (every? #(= width (count %)) map-bits) 
-       ]
+        width    (count (first lines))
+        height   (count lines)
+        valid    (every? #(= width (count %)) lines) 
 
+        joined   (join lines)
+        map-bits (map-indexed (partial char-to-map-data width) joined)
+       ]
+  
     {:valid valid
      :width width :height height
-     :map-bits map-bits
-     :lines lines }))
+     :map map-bits
+     :lines lines
+     :joined joined}))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Map processing stuff
+;; Some test code
 
-(defn iterate-pacmap
-  "Iterate through a pac man map"
-  [pac-map func]
-  (u/iterate-2d-array (:map-bits pac-map) (:width pac-map) (:height pac-map) func))
+(def test-map
+  "*********
+   *.o...o.*
+   *.......*
+   *...P...*
+   *.......*
+   *.o...o.*
+   *********")
 
-(def iterate-test-map (partial iterate-pacmap (parse-map pacmap-test)))
+;; Test code
+;; get a load of WALLS
+(defn my-test []
+    (filter #(= "wall" (:name %)) (:map (parse-map test-map))))
 
-(defn draw-func [bit x y]
-  bit)
+(pprint (my-test))
 
-(pprint (iterate-test-map draw-func))
-
-
+ 
+   
