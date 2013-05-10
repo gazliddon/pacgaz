@@ -18,3 +18,10 @@
 (def map-value-zero-to-one (partial map-value 0 1 ))
 
 (defn zero-to-one-cos [time] (map-value-zero-to-one  (cos time) -1 1))
+
+(defn iterate-2d-array
+  "iterate through 2d array passing the item and it's x y to a function"
+  [array width height func]
+  (for [ x (take width (range))
+         y (take height (range))]
+    (func (nth (nth array y) x) x y)))

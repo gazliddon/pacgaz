@@ -1,4 +1,5 @@
-(ns pacgaz.map-data)
+(ns pacgaz.map-data
+  (:require [pacgaz.utils :as u]))
 
 ;; Textual version of the map
 
@@ -11,7 +12,6 @@
    *.o...o.*
    *********")
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Different map element types
 
@@ -23,9 +23,13 @@
     \o { :name "pill"   :collide false }
     \P { :name "pacman" :collide false }
     })
+
 ;; Valid bit for unrecognised chars in the map data
 (def error-bit
   { :name "error" :collide false})
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Turn a string into an array of map bits
 (defn- string-to-map-data [str]
@@ -40,19 +44,30 @@
   [str]
   
   (let [lines    (map #(.trim %) (.split str "\n"))
-        map-bits (map string-to-map-data lines)
+        map-bits (vec (map string-to-map-data lines))
         width    (count (first map-bits))
         height   (count map-bits)
         valid    (every? #(= width (count %)) map-bits) 
        ]
 
     {:valid valid
-     :width width
-     :height height
+     :width width :height height
      :map-bits map-bits
      :lines lines }))
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Map processing stuff
 
-(parse-map pacmap-test)
+(defn iterate-pacmap
+  "Iterate through a pac man map"
+  [pac-map func]
+  (u/iterate-2d-array (:map-bits pac-map) (:width pac-map) (:height pac-map) func))
+
+(def iterate-test-map (partial iterate-pacmap (parse-map pacmap-test)))
+
+(defn draw-func [bit x y]
+  bit)
+
+(pprint (iterate-test-map draw-func))
+
+
