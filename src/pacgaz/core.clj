@@ -3,15 +3,13 @@
   (:require [pacgaz.draw     :as d])
   (:require [pacgaz.utils    :as u])
   (:require [pacgaz.mapdata  :as m])
-  
   (:require [penumbra.opengl :as gl])
-  
   (:require [penumbra.app    :as app]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn it-bits [type func]
-  (doseq [b (m/get-bits-of-type type)]
+(defn it-bits [level type func]
+  (doseq [b (m/get-tiles-of-type level type)]
     (func (:x b) (:y b)))
   )
 
@@ -43,14 +41,20 @@
 (defn rgb
   [r g b] (gl/color (/ r 255.0) (/ g 255.0) (/ b 255.0) 1))
 
-(defn draw-world [t]
+(defn draw-world [state t]
+  (let [level (state :level)
+        display-list (state :display-list)]
 
-  (gl/scale 0.2 0.2 0.2)
-  (gl/translate -14 -14 0)
-  (rgb 255 184 151)
-  (it-bits "pill" draw-pill)
-  (rgb 4 51 255)
-  (it-bits "wall" draw-wall)
+    (gl/scale 0.2 0.2 0.2)
+    (gl/translate -14 -14 0)
+
+    (rgb 255 184 151)
+    (it-bits level "pill" draw-pill)
+
+    (rgb 4 51 255)
+    
+    (gl/call-display-list display-list)
+    )
   )
 
 
@@ -100,39 +104,36 @@
       (d/sphere 10 40 1)
       (d/sphere 10 40 2))
     
-    (draw-world time)
+    (draw-world state time)
     )
   )
 
-;; A cube object in the game
-
-(defstruct pos :x :y :z)
-(defstruct vel :x :y :z)
-(defstruct col :r :g :b :a)
-(defstruct game-cube :col :pos :vel :number :create-time)
-
-(defn make-game-cube [rnd]
-  (struct-map game-cube
-    :pos {}
-    :vel 2
-    :number rnd)
-  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Init the App
+(defn make-display-list [level type func]
+  (gl/create-display-list
+   (it-bits level type func)))
 
 (defn init [state]
-                                        ; (app/size [100 100])
-  (app/vsync! true)
-  (gl/enable :depth-test)
-  (gl/enable :normalize)
-  (gl/enable :depth-test)
-  (gl/disable :cull-face)
-                                        ;  (gl/enable :lighting)
-                                        ;  (gl/enable :light0)
-                                        ;  (gl/shade-model :smooth)
 
-  state)
+  (let [
+        level        (:level state)
+        display-list (make-display-list level "wall" draw-wall)
+        ]
+    
+    (app/vsync! true)
+    
+    (gl/enable :depth-test)
+    (gl/enable :normalize)
+    (gl/enable :depth-test)
+    (gl/disable :cull-face)
+
+    (assoc state
+      
+      :display-list display-list)
+    )
+  )
 
 
 
@@ -165,18 +166,22 @@
   (display-loop t state)
   (app/repaint!))
 
+
 ;; Start the display loop
 (defn start-display-loop []
+  (let [
+        level (m/load-level "media/map.xlsx")
 
-  (let [ state {
-                :rot-x 0 :rot-y 0
-                :pos [0 0.93 -8]
-                :left false
-                :right false
-                :up false
-                :down false
-                
-                }
+        state {
+               :level level 
+               :rot-x 0 :rot-y 0
+               :pos [0 0.93 -8]
+               :left false
+               :right false
+               :up false
+               :down false
+               
+               }
         app-options {
                      :display display
                      :reshape reshape
@@ -184,10 +189,10 @@
                      :mouse-drag mouse-drag
                      :key-press key-press
                      :key-release key-release
-                     }]
+                     }
+        ]
+    (app/start app-options state))
+  )
 
-    (app/start app-options state)))
 
 (.start (Thread. start-display-loop))
-
-

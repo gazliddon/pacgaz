@@ -1,6 +1,6 @@
 (ns pacgaz.mapdata
-
   (:require clojure.pprint)
+  (:require [dk.ative.docjure.spreadsheet :as dj])
   (:use [clojure.string :only (join)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -8,7 +8,7 @@
 
 (def map-bit-types
   {
-    \* { :name "wall"   :collide true  }
+    \# { :name "wall"   :collide true  }
     \- { :name "space"  :collide false }
     \. { :name "pill"   :collide false }
     \P { :name "pacman" :collide false }
@@ -16,77 +16,50 @@
 
 ;; Valid bit for unrecognised chars in the map data
 (def err-bit { :name "error" :collide false})
+(defn- get-map-bit-type [c] (get map-bit-types c err-bit))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Turn a string into an array of map bits
 ;; Parse the map from a string, like the one at the bottom of this file
 ;; and turn it into a sequence
-
-(defn- parse-map
-  
-  "Parse a pac map as string into an object I can use in the game
-   checks to see if all of the lines are the same width"
-  
-  [str]
-
-  ;; Turns a chr into a has with info about the map bit this represents
-  ;; along with its x y pos on the map
-  
-  (defn- char-to-map-data [w idx chr]
-    (merge { :x (rem idx w) :y (quot idx w) } (get map-bit-types chr err-bit)))
-  
-  (let [lines    (map #(.trim %) (.split str "\n"))
-        width    (count (first lines))
-        joined   (join lines)
-        map-bits (map-indexed (partial char-to-map-data width) joined)
-       ]
-  
-    {:valid (every? #(= width (count %)) lines)
-     :width width :height (count lines)
-     :map map-bits
-     :lines lines
-     :joined joined}))
-
-
+(defn- char-to-map-data [w idx chr]
+  (merge { :x (rem idx w) :y (quot idx w) } (get-map-bit-type chr)))
+ 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Some test data and code
+;; Public api here
 
-;; Ha! Map doesn't care about spurious spaces in data :)
 
-(def test-map
-"############################
-#............##............#
-#.####.#####.##.#####.####.#
-#o####.#####.##.#####.####o#
-#.####.#####.##.#####.####.#
-#..........................#
-#.####.##.########.##.####.#
-#.####.##.########.##.####.#
-#......##... ##....##......#
-######.##### ## #####.######
-     #.#####    #####.#
-     #.##          ##.#
-     #.## ######## ##.#
-######.## ######## ##.######
-e     .   ########   .     e
-######.## ######## ##.######
-    ##.## ######## ##.##
-    ##.##  READY!  ##.##
-    ##.## ######## ##.##
-######.## ######## ##.######
-#............##............#
-#.####.#####.##.#####.####.#
-#.####.#####.##.#####.####.#
-#o..##................##. o#
-###.##.##.########.##.##.###
-###.##.##.########.##.##.###
-#......##....##....##.. ...#
-#.##########.##.##########.#
-#.##########.##.##########.#
-#..........................#
-############################"
+(defn load-level
+  "Loads a level from an XLSX file
+   assumes that the map is in the first sheet"
+  [file]
+
+  (defn row-to-cells [w row]
+    (let [ cell-data (vec (map dj/read-cell (dj/cell-seq row))) ]
+      (map  #(get cell-data % " ") (range w))))
+  
+  (let [wb   (dj/load-workbook file )
+        rows (dj/row-seq  (first (dj/sheet-seq wb)))
+        w    (apply max (map  #(count (dj/cell-seq %)) rows))
+        h    (count rows)
+        joined (join (flatten (map (partial row-to-cells w) rows)))
+        map-bits (map-indexed (partial char-to-map-data w) joined)
+        ]
+    {:height h  :width w
+     :joined joined
+     :map map-bits
+     })
   )
 
-(defn get-bits-of-type [type]
-  (filter #(= type (:name %)) (:map (parse-map test-map))))
+(defn get-tiles-of-type
+  "get all of the tiles of this named type from the map"
+  [level type]
+  (filter #(= type (:name %)) (level :map)))
 
+(defn get-tile
+  "get the tile at x,y from this map"
+  [level x y]
+  (assert false)
+  )
+
+;;; ends
