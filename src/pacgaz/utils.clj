@@ -3,6 +3,8 @@
 ;; Handy trig functions
 (defn sin [n] (Math/sin n))
 (defn cos [n] (Math/cos n))
+(def pi (Math/PI))
+(def twopi (* Math/PI 2.0))
 
 (defn map-value
   "Convert value in range [lo .. hi] to [new-lo.. new-hi]"
